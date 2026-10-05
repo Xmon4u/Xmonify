@@ -78,7 +78,11 @@ $spicetifyExe = Join-Path -Path $xmonifyFolder -ChildPath 'spicetify.exe'
 $installed = $false
 
 # 1. Check if running from local repository
-$currentScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path -ErrorAction SilentlyContinue
+$currentScriptDir = $null
+if ($MyInvocation.MyCommand -and $MyInvocation.MyCommand.Path) {
+    $currentScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path -ErrorAction SilentlyContinue
+}
+
 if ($currentScriptDir -and (Test-Path (Join-Path $currentScriptDir 'spicetify.go'))) {
     Write-Step "Installing from local source directory ($currentScriptDir)..."
     Copy-Item -Path "$currentScriptDir\Themes" -Destination $xmonifyFolder -Recurse -Force -ErrorAction SilentlyContinue
@@ -103,44 +107,59 @@ if ($currentScriptDir -and (Test-Path (Join-Path $currentScriptDir 'spicetify.go
     }
 }
 
-# 2. If not installed from local, download from GitHub release or repository archive
+# 2. If not installed from local, download repository assets and release binary
 if (-not $installed) {
-    $tempZip = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath 'xmonify.zip'
+    # 2a. Download repository assets (Themes, Extensions, jsHelper)
+    $tempAssetsZip = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath 'xmonify_assets.zip'
+    try {
+        Write-Step 'Downloading Xmonify themes and extensions...'
+        Invoke-WebRequest -Uri $archiveUrl -OutFile $tempAssetsZip -UseBasicParsing -TimeoutSec 45
+        if (Test-Path $tempAssetsZip) {
+            $extractDir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath 'xmonify_assets_extract'
+            if (Test-Path $extractDir) { Remove-Item -Path $extractDir -Recurse -Force }
+            Expand-Archive -Path $tempAssetsZip -DestinationPath $extractDir -Force
+            
+            $subFolder = Join-Path -Path $extractDir -ChildPath "$repoName-main"
+            $srcDir = if (Test-Path $subFolder) { $subFolder } else { $extractDir }
+
+            foreach ($item in @('Themes', 'Extensions', 'CustomApps', 'jsHelper', 'css-map.json', 'globals.d.ts')) {
+                $target = Join-Path -Path $srcDir -ChildPath $item
+                if (Test-Path $target) {
+                    Copy-Item -Path $target -Destination $xmonifyFolder -Recurse -Force -ErrorAction SilentlyContinue
+                    Copy-Item -Path $target -Destination $spicetifyFolder -Recurse -Force -ErrorAction SilentlyContinue
+                }
+            }
+            Remove-Item -Path $tempAssetsZip -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path $extractDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    } catch {
+        Write-Host ' [!] Could not fetch repository assets, continuing...' -ForegroundColor Yellow
+    }
+
+    # 2b. Download pre-compiled release binary
+    $tempBinZip = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath 'xmonify_bin.zip'
     $arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } elseif ($env:PROCESSOR_ARCHITECTURE -eq 'AMD64') { 'x64' } else { 'x32' }
     $binaryZipUrl = "$releaseUrl/xmonify-2.45.3-windows-$arch.zip"
     
-    $downloadSuccess = $false
     try {
-        Write-Step 'Downloading Xmonify release binary...'
-        Invoke-WebRequest -Uri $binaryZipUrl -OutFile $tempZip -UseBasicParsing -TimeoutSec 30
-        $downloadSuccess = $true
-    }
-    catch {
-        Write-Host ' [i] Pre-compiled release not yet available. Downloading repository assets...' -ForegroundColor Yellow
-        try {
-            Invoke-WebRequest -Uri $archiveUrl -OutFile $tempZip -UseBasicParsing -TimeoutSec 45
-            $downloadSuccess = $true
-        } catch {
-            Write-Fail 'Could not download Xmonify assets from GitHub.'
+        Write-Step "Downloading Xmonify binary ($arch)..."
+        Invoke-WebRequest -Uri $binaryZipUrl -OutFile $tempBinZip -UseBasicParsing -TimeoutSec 45
+        if (Test-Path $tempBinZip) {
+            $binExtractDir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath 'xmonify_bin_extract'
+            if (Test-Path $binExtractDir) { Remove-Item -Path $binExtractDir -Recurse -Force }
+            Expand-Archive -Path $tempBinZip -DestinationPath $binExtractDir -Force
+            
+            $foundExe = Get-ChildItem -Path $binExtractDir -Filter 'xmonify.exe' -Recurse | Select-Object -First 1
+            if ($foundExe) {
+                Copy-Item -Path $foundExe.FullName -Destination $xmonifyExe -Force
+                Copy-Item -Path $foundExe.FullName -Destination $spicetifyExe -Force
+                $installed = $true
+            }
+            Remove-Item -Path $tempBinZip -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path $binExtractDir -Recurse -Force -ErrorAction SilentlyContinue
         }
-    }
-
-    if ($downloadSuccess -and (Test-Path $tempZip)) {
-        Write-Step 'Extracting Xmonify packages...'
-        $extractDir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath 'xmonify_extract'
-        if (Test-Path $extractDir) { Remove-Item -Path $extractDir -Recurse -Force }
-        Expand-Archive -Path $tempZip -DestinationPath $extractDir -Force
-        
-        # Check if archive was branch zip (contains Xmonify-main subfolder)
-        $subFolder = Join-Path -Path $extractDir -ChildPath "$repoName-main"
-        $sourcePath = if (Test-Path $subFolder) { $subFolder } else { $extractDir }
-
-        Copy-Item -Path "$sourcePath\*" -Destination $xmonifyFolder -Recurse -Force -ErrorAction SilentlyContinue
-        Copy-Item -Path "$sourcePath\*" -Destination $spicetifyFolder -Recurse -Force -ErrorAction SilentlyContinue
-
-        # Clean up temp
-        Remove-Item -Path $tempZip -Force -ErrorAction SilentlyContinue
-        Remove-Item -Path $extractDir -Recurse -Force -ErrorAction SilentlyContinue
+    } catch {
+        Write-Host ' [!] Binary release download skipped or unavailable.' -ForegroundColor Yellow
     }
 }
 

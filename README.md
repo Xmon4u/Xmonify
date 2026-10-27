@@ -1,94 +1,67 @@
 # Xmonify CLI
 
-<p align="center">
-  <b>A command-line tool to customize the official Spotify client.</b>
-  <br>
-  <i>Customized and maintained by <b>XMON4U</b></i>
-</p>
+[![Go Version](https://img.shields.io/badge/Go-1.24%2B-blue.svg)](https://go.dev/)
+[![License: LGPL 2.1](https://img.shields.io/badge/License-LGPL%202.1-orange.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/Xmon4u/Xmonify)
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Developer-XMON4U-blue.svg?style=flat-square" alt="Developer XMON4U">
-  <img src="https://img.shields.io/badge/Version-2.45.3-green.svg?style=flat-square" alt="Version 2.45.3">
-  <img src="https://img.shields.io/badge/License-GNU%20LGPL%20v2.1-orange.svg?style=flat-square" alt="License LGPL 2.1">
-  <img src="https://img.shields.io/badge/Go-1.26+-00ADD8.svg?style=flat-square&logo=go" alt="Go Version">
-</p>
+A command-line tool to customize and extend the official Spotify desktop client on Windows, macOS, and Linux.
 
----
+## Features
 
-## Overview
+- **Theme & Color Styling**: Apply custom themes and switch between color palettes without modifying original Spotify binaries permanently.
+- **Custom CSS Injection**: Inject custom CSS rules directly into the Spotify client UI.
+- **JavaScript Extensions**: Load custom client extensions (keyboard shortcuts, popup lyrics, enhanced shuffle, queue improvements).
+- **Custom Apps**: Embed dedicated mini web applications directly inside Spotify navigation views.
+- **Quick Backup & Restore**: Safe backup mechanism allowing one-command restoration to Spotify's stock state.
 
-**Xmonify CLI** gives you complete control over your Spotify desktop experience across Windows, macOS, and Linux. Personalize the interface, extend features, and apply custom themes.
+## Requirements
 
-### Features
+- Spotify Desktop Client (installed via official installer)
+- [Go](https://go.dev/dl/) 1.24 or newer
+- [Node.js](https://nodejs.org/) & [pnpm](https://pnpm.io/) (for building the JS wrapper)
 
-- **Theme & Color Customization**: Switch between curated color palettes or design your own UI appearance.
-- **CSS Injection**: Apply custom CSS rules directly to the Spotify client interface.
-- **Extension Support**: Inject custom JavaScript extensions to enhance client functionality (e.g., ad skip, shortcut navigation, popup lyrics, shuffle+).
-- **Custom Apps**: Embed dedicated web apps directly into Spotify.
-- **Lightweight & Fast**: Built in Go with near-instant execution and hot-refresh support.
+## Building from Source
 
----
-
-## Getting Started
-
-### Requirements
-- [Go](https://go.dev/dl/) (1.24+ recommended)
-- [Node.js](https://nodejs.org/) & [pnpm](https://pnpm.io/)
-- Spotify Desktop Client
-
-### Building from Source
-
-1. Clone or download the repository:
+1. Clone the repository:
    ```bash
-   git clone https://github.com/XMON4U/xmonify.git
-   cd xmonify
+   git clone https://github.com/Xmon4u/Xmonify.git
+   cd Xmonify
    ```
 
-2. Install dependencies and build the wrapper helper:
+2. Install dependencies and compile the wrapper:
    ```bash
    pnpm install
    pnpm build:wrapper
    ```
 
-3. Compile the executable:
-   - **Windows:**
+3. Compile the Go binary:
+   - **Windows**:
      ```powershell
      go build -o xmonify.exe
      ```
-   - **Linux & macOS:**
+   - **Linux & macOS**:
      ```bash
      go build -o xmonify
      ```
 
----
-
-## Usage & Commands
+## Common Commands
 
 ```bash
-# Apply customizations
+# Back up original Spotify files and apply active configuration
 xmonify backup apply
 
-# Refresh applied theme and extensions
+# Re-apply theme or extension modifications after editing configs
 xmonify refresh
 
-# Enter live watch mode during theme development
+# Start live watch mode during theme/CSS development
 xmonify watch -s
 
-# Restore Spotify to original state
+# Restore Spotify back to its stock state
 xmonify restore
 ```
 
----
-
-## Developer & Maintainer
-
-- **Developer**: XMON4U
-- **GitHub**: [https://github.com/XMON4U](https://github.com/XMON4U)
-
----
-
 ## Attribution & License
 
-This project is a customized distribution based on the open-source **Spicetify CLI** project originally created by **khanhas** and maintained by the **Spicetify Contributors**.
+Xmonify is a customized distribution based on the open-source **Spicetify CLI** project originally created by **khanhas** and maintained by the **Spicetify Community**.
 
-Licensed under the **GNU Lesser General Public License v2.1 (LGPL-2.1)**. See [LICENSE](LICENSE) for full details.
+This project is licensed under the **GNU Lesser General Public License v2.1 (LGPL-2.1)**. See [LICENSE](LICENSE) for details.
